@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      # The server must complete an MCP handshake and list every tool with no
+      # wallet configured — that is what directory crawlers and clients see.
+      - run: node scripts/ci-probe.mjs
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t solinkify-mcp .
+      # Same introspection contract, this time through the published image.
+      - name: Probe the image over stdio
+        run: |
+          printf '%s\n%s\n%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0.0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | docker run -i --rm solinkify-mcp > out.json
+          grep -q '"wallet_status"' out.json || { echo "FAIL: tools/list did not return the tool set"; cat out.json; exit 1; }
+          echo "OK: image boots and lists tools."
