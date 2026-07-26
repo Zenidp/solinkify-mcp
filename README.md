@@ -38,6 +38,22 @@ The wallet is a standard Solana JSON keypair (`solana-keygen new -o agent-keypai
 funded with a little SOL for fees and the stablecoin you want to spend
 (USDC/USDT/PYUSD).
 
+It is optional at startup: the server connects and lists its tools with no wallet
+configured, and the read-only tools (price preview, dataset search, checkout
+quotes) work as they are. Only the tools that spend ask for a keypair, and they
+say so in the tool result rather than failing at launch.
+
+### Docker
+
+```bash
+docker build -t solinkify-mcp .
+docker run -i --rm solinkify-mcp                         # starts, tools listed
+docker run -i --rm -v "$PWD/agent-keypair.json:/wallet.json:ro" \
+  -e SOLINKIFY_WALLET_PATH=/wallet.json solinkify-mcp    # able to pay
+```
+
+`-i` is required: stdin and stdout carry the MCP protocol.
+
 ## Tools
 
 | Tool | What it does |

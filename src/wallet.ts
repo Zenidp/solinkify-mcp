@@ -7,6 +7,9 @@ import bs58 from 'bs58';
  *   SOLINKIFY_WALLET_PATH — path to a JSON-array keypair file (solana-keygen), or
  *   SOLINKIFY_WALLET_BS58 — a base58-encoded secret key (wallet exports).
  * The wallet is the agent's spending identity — pair it with the spend caps.
+ *
+ * Called lazily, on the first tool that needs a signature. Discovery, search and
+ * quote tools run without any wallet configured.
  */
 export function loadWallet(): Keypair {
   const path = process.env['SOLINKIFY_WALLET_PATH'];
@@ -19,6 +22,8 @@ export function loadWallet(): Keypair {
     return Keypair.fromSecretKey(bs58.decode(b58.trim()));
   }
   throw new Error(
-    '@solinkify/mcp: set SOLINKIFY_WALLET_PATH (JSON keypair file) or SOLINKIFY_WALLET_BS58',
+    'This tool spends from a wallet, so one must be configured: set SOLINKIFY_WALLET_PATH ' +
+      '(path to a JSON keypair from `solana-keygen new`) or SOLINKIFY_WALLET_BS58 (base58 ' +
+      'secret key). Read-only tools work without it.',
   );
 }

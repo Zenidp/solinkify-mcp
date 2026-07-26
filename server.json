@@ -3,20 +3,20 @@
   "name": "com.solinkify/mcp",
   "description": "Pay for x402 paywalls, datasets, and store checkouts on Solana, behind hard spending caps.",
   "websiteUrl": "https://solinkify.com/docs",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@solinkify/mcp",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "SOLINKIFY_WALLET_PATH",
-          "description": "Path to the agent's Solana JSON keypair (solana-keygen new -o agent-keypair.json)",
-          "isRequired": true,
+          "description": "Path to the agent's Solana JSON keypair (solana-keygen new -o agent-keypair.json). Needed by the tools that spend; discovery and search tools run without it.",
+          "isRequired": false,
           "format": "string",
           "isSecret": false
         },
