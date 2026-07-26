@@ -1,0 +1,54 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.solinkify/mcp",
+  "description": "Pay for x402 paywalls, datasets, and store checkouts on Solana, behind hard spending caps.",
+  "websiteUrl": "https://solinkify.com/docs",
+  "version": "0.2.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@solinkify/mcp",
+      "version": "0.2.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SOLINKIFY_WALLET_PATH",
+          "description": "Path to the agent's Solana JSON keypair (solana-keygen new -o agent-keypair.json)",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SOLINKIFY_MAX_PAYMENT_USD",
+          "description": "Hard cap for a single payment in USD (default 1)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "SOLINKIFY_DAILY_CAP_USD",
+          "description": "Hard cap for total spend per UTC day in USD (default 10)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "SOLINKIFY_NETWORK",
+          "description": "devnet (default) or mainnet-beta",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SOLANA_RPC_URL",
+          "description": "Custom Solana RPC endpoint (defaults to the network's public RPC)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
