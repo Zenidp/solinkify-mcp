@@ -57,5 +57,12 @@
     "node": ">=20.19"
   },
   "author": "Solinkify",
-  "mcpName": "com.solinkify/mcp"
+  "mcpName": "com.solinkify/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zenidp/solinkify-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zenidp/solinkify-mcp/issues"
+  }
 }
