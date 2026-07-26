@@ -54,8 +54,14 @@ export function registerPayTools(server: McpServer, ctx: ToolContext): void {
     'pay_get_session',
     {
       description:
-        'Inspect a Solinkify Pay checkout session (from a merchant store such as WooCommerce/OpenCart/PrestaShop) before paying: amount, merchant, order id, and status. Accepts a session id or a full checkout URL.',
-      inputSchema: { session: z.string() },
+        'Inspect a Solinkify Pay checkout session (from a merchant store such as WooCommerce, OpenCart or PrestaShop) before paying: amount, merchant, order id, and status. Read-only, so call it first to confirm what pay_checkout would spend.',
+      inputSchema: {
+        session: z
+          .string()
+          .describe(
+            'Either the session id (a uuid) or the full checkout URL such as https://solinkify.com/checkout/<id>. Both forms are accepted; the id is extracted from the URL.',
+          ),
+      },
     },
     async ({ session }) => textResult(summarize(await getSession(ctx, session))),
   );
@@ -64,8 +70,14 @@ export function registerPayTools(server: McpServer, ctx: ToolContext): void {
     'pay_checkout',
     {
       description:
-        'Pay a pending Solinkify Pay checkout session from the agent wallet (settles on Solana; the merchant receives 99% instantly and the order is marked paid). Spending caps apply.',
-      inputSchema: { session: z.string() },
+        'Pay a pending Solinkify Pay checkout session from the agent wallet. Settles on Solana, the merchant receives 99% instantly, and the order is marked paid. Moves money and is not reversible, so confirm the amount with pay_get_session first. Sessions that are already paid or expired are refused.',
+      inputSchema: {
+        session: z
+          .string()
+          .describe(
+            'Session id (uuid) or full checkout URL of a session whose status is still "pending". The amount and token are fixed by the merchant and cannot be overridden here.',
+          ),
+      },
     },
     async ({ session }) => {
       const s = await getSession(ctx, session);

@@ -36,8 +36,15 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
     'gate_get_price',
     {
       description:
-        'Preview a Solinkify Gate paywall (HTTP 402 / x402) without paying: price, currency, and available access modes (pay-per-request, prepaid, subscription).',
-      inputSchema: { url: z.string().url() },
+        'Preview a Solinkify Gate paywall (HTTP 402 / x402) without paying: price, currency, and available access modes (pay-per-request, prepaid, subscription). Call this before gate_fetch to learn the price. Costs nothing and never moves money.',
+      inputSchema: {
+        url: z
+          .string()
+          .url()
+          .describe(
+            'Absolute https:// URL of the gated page or API endpoint to inspect, e.g. https://example.com/api/report. If the URL is not paywalled the tool says so instead of returning a price.',
+          ),
+      },
     },
     async ({ url }) => {
       const { status, manifest } = await peekManifest(url);
@@ -50,8 +57,15 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
     'gate_fetch',
     {
       description:
-        'Fetch a Gate-protected URL, automatically paying the x402 paywall from the agent wallet (prepaid balance preferred, escrow payment otherwise). Spending caps apply.',
-      inputSchema: { url: z.string().url() },
+        'Fetch a Gate-protected URL, automatically paying the x402 paywall from the agent wallet (prepaid balance preferred, escrow payment otherwise). Returns the page content plus what was paid. Refuses and explains if the price exceeds the per-payment or daily cap. Ungated URLs are fetched normally and cost nothing.',
+      inputSchema: {
+        url: z
+          .string()
+          .url()
+          .describe(
+            'Absolute https:// URL to retrieve. If it answers HTTP 402 the paywall is paid automatically, so check the price with gate_get_price first when the cost matters.',
+          ),
+      },
     },
     async ({ url }) => {
       // Read the price first so the guard can veto before any money moves.
@@ -84,8 +98,15 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
     'gate_prepaid_balance',
     {
       description:
-        "Show the agent's Solinkify pre-paid balance for a stablecoin (deposited once, debited per request without signing).",
-      inputSchema: { token: z.enum(['USDC', 'USDT', 'PYUSD']).default('USDC') },
+        "Show the agent's Solinkify pre-paid balance for a stablecoin (deposited once, then debited per request without signing a transaction each time). Read-only.",
+      inputSchema: {
+        token: z
+          .enum(['USDC', 'USDT', 'PYUSD'])
+          .default('USDC')
+          .describe(
+            'Stablecoin whose pre-paid balance to read. Balances are tracked per token, so USDC and USDT are separate pots. Defaults to USDC.',
+          ),
+      },
     },
     async ({ token }) => {
       const info = await getPrepaidBalance(
@@ -101,10 +122,20 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
     'gate_prepaid_deposit',
     {
       description:
-        'Deposit stablecoin into the Solinkify pre-paid balance so future gate_fetch calls debit it without per-request transactions. Counts against the daily spending cap.',
+        'Deposit stablecoin into the Solinkify pre-paid balance so future gate_fetch calls debit it without a per-request transaction. Moves money: the full deposit counts against the daily spending cap at once, and the balance can be withdrawn later.',
       inputSchema: {
-        amount_usd: z.number().positive(),
-        token: z.enum(['USDC', 'USDT', 'PYUSD']).default('USDC'),
+        amount_usd: z
+          .number()
+          .positive()
+          .describe(
+            'Amount to deposit, in whole currency units (1.5 means $1.50, not 1500000 base units). Must be positive and within the remaining daily cap.',
+          ),
+        token: z
+          .enum(['USDC', 'USDT', 'PYUSD'])
+          .default('USDC')
+          .describe(
+            'Stablecoin to deposit. Must match the token the target endpoints price in, since balances do not convert between tokens. Defaults to USDC.',
+          ),
       },
     },
     async ({ amount_usd, token }) => {
@@ -123,10 +154,18 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
     'gate_subscribe',
     {
       description:
-        "Buy (or renew) a creator's subscription plan for a Gate endpoint — one payment, then access until expiry. The plan price is read on-chain and checked against the spending caps first.",
+        "Buy (or renew) a creator's subscription plan for a Gate endpoint: one payment, then unlimited access until expiry. Moves money. The plan price is read on-chain and checked against the spending caps before paying. Fails if the endpoint has no subscription plan.",
       inputSchema: {
-        creator_wallet: z.string(),
-        endpoint_id: z.string(),
+        creator_wallet: z
+          .string()
+          .describe(
+            "The creator's Solana wallet address in base58 (the endpoint owner, not the agent's own wallet). Shown in the 402 manifest returned by gate_get_price.",
+          ),
+        endpoint_id: z
+          .string()
+          .describe(
+            'Identifier the creator gave the endpoint, e.g. "premium-api". Also comes from the 402 manifest; it is not a URL.',
+          ),
       },
     },
     async ({ creator_wallet, endpoint_id }) => {

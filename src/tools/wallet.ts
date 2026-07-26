@@ -9,7 +9,7 @@ export function registerWalletTools(server: McpServer, ctx: ToolContext): void {
     'wallet_status',
     {
       description:
-        "Show the agent wallet: address, SOL for fees, stablecoin balances, Solinkify pre-paid balance, and today's remaining spending budget.",
+        "Show the agent wallet: address, SOL for fees, stablecoin balances, Solinkify pre-paid balance, and today's remaining spending budget under the caps. Takes no arguments and never moves money. Call it first when a payment fails, to tell an empty wallet apart from a cap that has been reached.",
       inputSchema: {},
     },
     async () => {

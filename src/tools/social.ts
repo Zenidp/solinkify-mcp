@@ -51,8 +51,14 @@ export function registerSocialTools(server: McpServer, ctx: ToolContext): void {
     'social_get_blink',
     {
       description:
-        'Inspect a Solinkify Blink (a product shared on X / the timeline as a Solana Action) before buying: title, price, and seller. Accepts the share link, the Actions URL, or a raw product id.',
-      inputSchema: { url: z.string() },
+        'Inspect a Solinkify Blink (a product shared on X as a Solana Action) before buying: title, description, price, and seller. Read-only, so use it to confirm the price before social_buy_blink.',
+      inputSchema: {
+        url: z
+          .string()
+          .describe(
+            'Any form the link circulates in: a share link (https://solinkify.com/book/<id>), an Actions URL (…/api/actions/buy/<id>), or the raw product id. The id is extracted automatically.',
+          ),
+      },
     },
     async ({ url }) => {
       const { bookId, meta, book } = await resolve(ctx, url);
@@ -70,10 +76,20 @@ export function registerSocialTools(server: McpServer, ctx: ToolContext): void {
     'social_buy_blink',
     {
       description:
-        'Buy a product from a Solinkify Blink link (as shared on X). Settles on Solana via the same escrow rails; returns the receipt and the download link. Spending caps apply.',
+        'Buy a product from a Solinkify Blink link as shared on X. Moves money: settles on Solana through the same escrow rails as DataHub and returns the receipt plus the download link. The price is read from the catalog and checked against the spending caps first.',
       inputSchema: {
-        url: z.string(),
-        email: z.string().email().optional(),
+        url: z
+          .string()
+          .describe(
+            'Share link, Actions URL, or raw product id of the Blink to buy, in the same forms social_get_blink accepts.',
+          ),
+        email: z
+          .string()
+          .email()
+          .optional()
+          .describe(
+            'Optional buyer e-mail for the receipt. Leave it out to buy anonymously; the download link is returned either way.',
+          ),
       },
     },
     async ({ url, email }) => {

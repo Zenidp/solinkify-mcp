@@ -79,4 +79,24 @@ if (undescribed.length > 0) {
   console.error(`FAIL: tools missing description/inputSchema: ${undescribed.map((t) => t.name).join(", ")}`);
   process.exit(1);
 }
-console.log("OK: server boots with no wallet and lists all tools.");
+
+// Every parameter must document itself too. An agent picking a tool from a
+// directory listing sees only these strings, so a bare `{"type":"string"}`
+// leaves it guessing what to pass.
+const missingParamDocs = [];
+for (const t of tools) {
+  const props = t.inputSchema.properties ?? {};
+  for (const [param, schema] of Object.entries(props)) {
+    if (!schema.description) missingParamDocs.push(`${t.name}.${param}`);
+  }
+}
+if (missingParamDocs.length > 0) {
+  console.error(`FAIL: parameters without a description: ${missingParamDocs.join(", ")}`);
+  process.exit(1);
+}
+
+const paramCount = tools.reduce(
+  (n, t) => n + Object.keys(t.inputSchema.properties ?? {}).length,
+  0,
+);
+console.log(`OK: server boots with no wallet, lists all tools, and documents all ${paramCount} parameters.`);

@@ -74,8 +74,19 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
       description:
         'Search the Solinkify DataHub marketplace. Returns id, title, price (USD stablecoin), seller, category, and sales count. Datasets: buy with datahub_buy. API listings (kind "api"): the price is per request — access them by calling gate_fetch on their api_base_url.',
       inputSchema: {
-        query: z.string().optional(),
-        limit: z.number().int().min(1).max(50).default(10),
+        query: z
+          .string()
+          .optional()
+          .describe(
+            'Free-text filter matched against title, author, description, category and format. Omit to browse everything. Plain keywords work best; there is no query syntax.',
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .default(10)
+          .describe('Maximum number of listings to return, 1 to 50. Defaults to 10.'),
       },
     },
     async ({ query, limit }) => {
@@ -119,10 +130,19 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
       description:
         'Buy a DataHub dataset (x402 settlement on Solana, 99% goes to the seller) and return the download link. Pays in USDC by default; set token to USDT to settle in USDT instead. Spending caps apply.',
       inputSchema: {
-        book_id: z.string(),
+        book_id: z
+          .string()
+          .describe(
+            'The dataset id returned by datahub_search (a uuid), not its title. Buying the same dataset twice pays twice; use datahub_download to re-fetch something already owned.',
+          ),
         // PYUSD is whitelisted on-chain but is a Token-2022 mint that pay_spl
         // (classic SPL only) cannot settle yet — pre-mainnet contract item.
-        token: z.enum(['USDC', 'USDT']).default('USDC'),
+        token: z
+          .enum(['USDC', 'USDT'])
+          .default('USDC')
+          .describe(
+            'Stablecoin to pay with. The agent wallet must hold this token and a little SOL for fees. Defaults to USDC.',
+          ),
       },
     },
     async ({ book_id, token }) => {
@@ -168,9 +188,20 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
       description:
         'Rate a DataHub dataset you have purchased (1-5 stars, optional comment). Verified-purchase only: the marketplace rejects wallets without a receipt for the dataset. No payment involved.',
       inputSchema: {
-        book_id: z.string(),
-        rating: z.number().int().min(1).max(5),
-        comment: z.string().max(2000).optional(),
+        book_id: z
+          .string()
+          .describe('Id of a dataset this wallet has already bought. Reviewing without a purchase receipt is rejected.'),
+        rating: z
+          .number()
+          .int()
+          .min(1)
+          .max(5)
+          .describe('Star rating from 1 (worst) to 5 (best), whole numbers only.'),
+        comment: z
+          .string()
+          .max(2000)
+          .optional()
+          .describe('Optional review text, up to 2000 characters. Published publicly next to the rating.'),
       },
     },
     async ({ book_id, rating, comment }) => {
@@ -208,7 +239,13 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
     {
       description:
         "Subscribe to a recurring DataHub dataset (time-based access, on-chain payment with the plan's USDC price). While active, every update of the dataset can be fetched with datahub_download — no per-download payment. Renewing extends from the current expiry. Spending caps apply.",
-      inputSchema: { book_id: z.string() },
+      inputSchema: {
+        book_id: z
+          .string()
+          .describe(
+            'Id of a dataset that offers a subscription plan. datahub_search reports one under "subscription"; datasets without a plan must be bought with datahub_buy instead.',
+          ),
+      },
     },
     async ({ book_id }) => {
       const plan = await fetchJson<SubscriptionStatus>(
@@ -241,8 +278,14 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
     'datahub_download',
     {
       description:
-        'Fetch a fresh download link for a DataHub dataset you already own — via a past purchase receipt OR an active subscription. Signed wallet message, no payment involved.',
-      inputSchema: { book_id: z.string() },
+        'Fetch a fresh download link for a DataHub dataset the agent already owns, either from a past purchase receipt or an active subscription. Proves ownership with a signed wallet message. Costs nothing, so prefer it over buying the same dataset again.',
+      inputSchema: {
+        book_id: z
+          .string()
+          .describe(
+            'Id of a dataset this wallet already owns through datahub_buy or datahub_subscribe. Fails if there is no receipt and no active subscription.',
+          ),
+      },
     },
     async ({ book_id }) => {
       const timestamp = Math.floor(Date.now() / 1000);
