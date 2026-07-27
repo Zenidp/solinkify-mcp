@@ -3,12 +3,12 @@
   "name": "com.solinkify/mcp",
   "description": "Pay for x402 paywalls, datasets, and store checkouts on Solana, behind hard spending caps.",
   "websiteUrl": "https://solinkify.com/docs",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@solinkify/mcp",
-      "version": "0.2.4",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       },
@@ -32,6 +32,13 @@
           "description": "Hard cap for total spend per UTC day in USD (default 10)",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "SOLINKIFY_OWNER_WALLET",
+          "description": "Owner mode (ADR-008): base58 address of the wallet that funds pay_checkout through its on-chain SpendAuthority. The agent signs but never holds the owner's funds; per-payment cap, daily ceiling and revoke are enforced by the Solana program. Unset means payments come from the agent wallet.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {

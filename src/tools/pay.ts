@@ -70,7 +70,7 @@ export function registerPayTools(server: McpServer, ctx: ToolContext): void {
     'pay_checkout',
     {
       description:
-        'Pay a pending Solinkify Pay checkout session from the agent wallet. Settles on Solana, the merchant receives 99% instantly, and the order is marked paid. Moves money and is not reversible, so confirm the amount with pay_get_session first. Sessions that are already paid or expired are refused.',
+        'Pay a pending Solinkify Pay checkout session. Settles on Solana, the merchant receives 99% instantly, and the order is marked paid. Spends from the agent wallet — or, when SOLINKIFY_OWNER_WALLET is configured, from the owner wallet under its on-chain SpendAuthority caps (ADR-008); check spend_authority_status first in that mode. Moves money and is not reversible, so confirm the amount with pay_get_session first. Sessions that are already paid or expired are refused.',
       inputSchema: {
         session: z
           .string()
@@ -96,6 +96,9 @@ export function registerPayTools(server: McpServer, ctx: ToolContext): void {
           amount_sol: amountUsd,
           order_id: s.order_id,
           token_mint: s.token_mint,
+          // ADR-008 owner mode: draw from the owner's ATA via pay_spl_delegated
+          // (the contract enforces the SpendAuthority caps + kill switch).
+          owner_wallet: ctx.config.ownerWallet,
         }),
       });
       if (gw.status !== 'success' || !gw.transaction_base64) {
@@ -116,6 +119,9 @@ export function registerPayTools(server: McpServer, ctx: ToolContext): void {
       return textResult({
         ...summarize(await getSession(ctx, s.id)),
         paid_usd: amountUsd,
+        funds_source: ctx.config.ownerWallet
+          ? `owner wallet ${ctx.config.ownerWallet} (delegated, on-chain caps)`
+          : 'agent wallet',
         route: gw.route_path ?? null,
         signature,
         verify,

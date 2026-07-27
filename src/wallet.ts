@@ -22,8 +22,8 @@ export function loadWallet(): Keypair {
     return Keypair.fromSecretKey(bs58.decode(b58.trim()));
   }
   throw new Error(
-    'This tool spends from a wallet, so one must be configured: set SOLINKIFY_WALLET_PATH ' +
+    'This tool needs the agent wallet, so one must be configured: set SOLINKIFY_WALLET_PATH ' +
       '(path to a JSON keypair from `solana-keygen new`) or SOLINKIFY_WALLET_BS58 (base58 ' +
-      'secret key). Read-only tools work without it.',
+      'secret key). Discovery and search tools work without it.',
   );
 }

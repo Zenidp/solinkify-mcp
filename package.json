@@ -1,6 +1,6 @@
 {
   "name": "@solinkify/mcp",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Solinkify MCP server — let AI agents pay for gated content (x402), buy and rate datasets, and settle store checkouts on Solana, with hard spending caps.",
   "type": "module",
   "main": "./dist/index.js",

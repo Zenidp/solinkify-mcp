@@ -101,7 +101,7 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
         "Show the agent's Solinkify pre-paid balance for a stablecoin (deposited once, then debited per request without signing a transaction each time). Read-only.",
       inputSchema: {
         token: z
-          .enum(['USDC', 'USDT', 'PYUSD'])
+          .enum(['USDC', 'USDT'])
           .default('USDC')
           .describe(
             'Stablecoin whose pre-paid balance to read. Balances are tracked per token, so USDC and USDT are separate pots. Defaults to USDC.',
@@ -131,7 +131,7 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
             'Amount to deposit, in whole currency units (1.5 means $1.50, not 1500000 base units). Must be positive and within the remaining daily cap.',
           ),
         token: z
-          .enum(['USDC', 'USDT', 'PYUSD'])
+          .enum(['USDC', 'USDT'])
           .default('USDC')
           .describe(
             'Stablecoin to deposit. Must match the token the target endpoints price in, since balances do not convert between tokens. Defaults to USDC.',

@@ -135,8 +135,8 @@ export function registerDatahubTools(server: McpServer, ctx: ToolContext): void 
           .describe(
             'The dataset id returned by datahub_search (a uuid), not its title. Buying the same dataset twice pays twice; use datahub_download to re-fetch something already owned.',
           ),
-        // PYUSD is whitelisted on-chain but is a Token-2022 mint that pay_spl
-        // (classic SPL only) cannot settle yet — pre-mainnet contract item.
+        // PYUSD was dropped from the whitelist (Token-2022 — pay_spl settles
+        // classic SPL only).
         token: z
           .enum(['USDC', 'USDT'])
           .default('USDC')

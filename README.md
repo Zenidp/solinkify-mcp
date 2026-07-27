@@ -36,7 +36,7 @@ Add to your MCP host config (e.g. Claude Desktop `claude_desktop_config.json`):
 
 The wallet is a standard Solana JSON keypair (`solana-keygen new -o agent-keypair.json`),
 funded with a little SOL for fees and the stablecoin you want to spend
-(USDC/USDT/PYUSD).
+(USDC/USDT).
 
 It is optional at startup: the server connects and lists its tools with no wallet
 configured, and the read-only tools (price preview, dataset search, checkout
@@ -59,6 +59,7 @@ docker run -i --rm -v "$PWD/agent-keypair.json:/wallet.json:ro" \
 | Tool | What it does |
 |---|---|
 | `wallet_status` | Address, SOL, stablecoin balances, prepaid balance, remaining budget |
+| `spend_authority_status` | On-chain SpendAuthority (owner mode): caps, spent/left today, revoked |
 | `gate_get_price` | Preview an x402 paywall without paying |
 | `gate_fetch` | Fetch gated content, auto-paying (prepaid preferred, escrow otherwise) |
 | `gate_prepaid_balance` / `gate_prepaid_deposit` | Manage the pre-paid balance (no per-request signing) |
@@ -69,7 +70,7 @@ docker run -i --rm -v "$PWD/agent-keypair.json:/wallet.json:ro" \
 | `datahub_subscribe` | Time-based access to a recurring dataset (on-chain plan; renew extends expiry) |
 | `datahub_download` | Fresh download link via purchase receipt or active subscription (no payment) |
 | `pay_get_session` | Inspect a checkout session (accepts the full checkout URL) |
-| `pay_checkout` | Pay a pending checkout session; the merchant's order is marked paid |
+| `pay_checkout` | Pay a pending checkout session; the merchant's order is marked paid. With `SOLINKIFY_OWNER_WALLET`: spends the owner's funds under on-chain caps |
 | `social_get_blink` | Inspect a Blink product link (title, price, seller) without paying |
 | `social_buy_blink` | Buy from a Blink link; returns the receipt + download link |
 
@@ -87,8 +88,24 @@ two hard caps **before any funds move**, on every tool:
 For Gate paywalls there is an on-chain scoped budget too: a prepaid balance is
 deposited once into a program-owned account and debited per request at
 on-chain prices; `withdraw_prepaid` pulls the remainder back at any time — the
-kill switch. Delegated on-chain spend authority (allowance + revoke enforced
-by the program itself) is on the pre-mainnet contract roadmap.
+kill switch.
+
+### Owner mode (on-chain SpendAuthority)
+
+Set `SOLINKIFY_OWNER_WALLET` to the base58 address of a funds owner and
+`pay_checkout` stops spending from the agent keypair: it settles through
+`pay_spl_delegated`, drawing from the **owner's** token account under a
+SpendAuthority the owner created on-chain — per-payment cap, daily ceiling,
+and revoke-as-kill-switch all enforced **by the Solana program**, not by this
+server. The agent wallet only signs and pays tx fees; it never holds the
+owner's funds or keys. Inspect the allowance with `spend_authority_status`.
+
+The owner grants (and can instantly revoke) the allowance with the contract's
+`create_spend_authority` / `update_spend_authority` / `revoke_spend_authority`
+instructions, keyed to the agent's public key. One SpendAuthority covers one
+stablecoin mint. The local `SOLINKIFY_MAX_PAYMENT_USD` / `SOLINKIFY_DAILY_CAP_USD`
+caps still apply on top (defense in depth). Other paying tools (gate, DataHub,
+Blinks) still spend from the agent wallet.
 
 Refusals come back as readable messages the agent can relay to the user. The
 server also self-identifies as an AI agent via User-Agent (override with
@@ -105,6 +122,7 @@ instead of being scraped.
 | `SOLINKIFY_API_URL` | `https://api.solinkify.com` | Solinkify backend |
 | `SOLINKIFY_MAX_PAYMENT_USD` | `1` | Per-payment cap |
 | `SOLINKIFY_DAILY_CAP_USD` | `10` | Daily budget |
+| `SOLINKIFY_OWNER_WALLET` | — (off) | Owner mode: `pay_checkout` spends the owner's funds via the on-chain SpendAuthority (ADR-008) |
 
 ## QA
 

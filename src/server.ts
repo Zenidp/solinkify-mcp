@@ -10,7 +10,7 @@ import { registerDatahubTools } from './tools/datahub.js';
 import { registerPayTools } from './tools/pay.js';
 import { registerSocialTools } from './tools/social.js';
 
-export const SERVER_VERSION = '0.2.4';
+export const SERVER_VERSION = '0.3.0';
 
 /** Build the Solinkify MCP server with all pillar tools registered. */
 export function createServer(): McpServer {
