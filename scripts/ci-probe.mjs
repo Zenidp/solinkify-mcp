@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 
 // Bump with every tool added or removed — the exact count is the point:
 // a silent drop (a registration throwing at boot) must fail CI, not pass it.
-const EXPECTED_TOOLS = 16;
+const EXPECTED_TOOLS = 17;
 const TIMEOUT_MS = 30_000;
 
 const child = spawn("node", ["dist/cli.js"], {

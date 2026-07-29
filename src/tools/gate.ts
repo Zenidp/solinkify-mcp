@@ -4,7 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { GateClient, depositPrepaid, getPrepaidBalance, subscribe } from '@solinkify/gate-sdk';
 import { mintFor } from '../config.js';
 import { PROGRAM_ID, type ToolContext } from '../context.js';
-import { textResult } from '../payments.js';
+import { fetchJson, textResult } from '../payments.js';
 
 interface Manifest {
   price?: number;
@@ -31,7 +31,83 @@ async function peekManifest(url: string): Promise<{ status: number; manifest: Ma
   return { status: 402, manifest };
 }
 
+/** One entry of the public x402 resource registry (GET /api/x402/resources). */
+interface RegistryResource {
+  title: string;
+  provider: string;
+  description: string;
+  category: string;
+  tags: string[];
+  url: string;
+  price_usd: number;
+  currency: string;
+  token_mint: string;
+  network: string;
+  endpoint_id: string;
+  pay_to: string;
+  access_modes: string[];
+  verified_at: string;
+}
+
 export function registerGateTools(server: McpServer, ctx: ToolContext): void {
+  server.registerTool(
+    'gate_find_endpoints',
+    {
+      description:
+        'Browse the public Solinkify registry of x402-priced endpoints: paid APIs and content an agent can buy per request. Returns url, price per request, currency, network and access modes for each one, plus whether it fits the configured spending caps. Use it to find a paid data source without being handed the URL, then call gate_get_price or gate_fetch on the url. Read-only and free. Every entry was verified by machine: it answers a real HTTP 402 with a valid x402 manifest that pays the wallet which listed it.',
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe(
+            'Free-text filter matched against title, description and tags. Omit to list everything. Plain keywords work best; there is no query syntax.',
+          ),
+        max_price_usd: z
+          .number()
+          .positive()
+          .optional()
+          .describe(
+            'Drop endpoints priced above this many USD per request. Omit to see every price.',
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .default(20)
+          .describe('Maximum number of endpoints to return, 1 to 100. Defaults to 20.'),
+      },
+    },
+    async ({ query, max_price_usd, limit }) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (query) params.set('q', query);
+      const registry = await fetchJson<{ count: number; resources: RegistryResource[] }>(
+        `${ctx.config.apiUrl}/api/x402/resources?${params.toString()}`,
+      );
+      const resources = (registry.resources ?? []).filter(
+        (r) => max_price_usd === undefined || r.price_usd <= max_price_usd,
+      );
+      return textResult({
+        total_matches: resources.length,
+        endpoints: resources.map((r) => ({
+          title: r.title,
+          provider: r.provider,
+          description: r.description,
+          category: r.category,
+          tags: r.tags,
+          url: r.url,
+          price_usd: r.price_usd,
+          currency: r.currency,
+          network: r.network,
+          access_modes: r.access_modes,
+          verified_at: r.verified_at,
+          // The per-payment cap is what would actually veto gate_fetch.
+          within_spending_cap: r.price_usd <= ctx.config.maxPaymentUsd,
+        })),
+      });
+    },
+  );
+
   server.registerTool(
     'gate_get_price',
     {

@@ -5,8 +5,9 @@ Claude Code, Cursor, or your own MCP host — **pay for things on Solana through
 Solinkify**, with hard spending caps. Agentic payments on the x402 standard,
 as a set of tools your agent already knows how to call:
 
-- **Gate (x402 paywalls):** preview prices, auto-pay HTTP 402 content, manage a
-  pre-paid balance, buy subscriptions.
+- **Gate (x402 paywalls):** find priced endpoints in the public registry,
+  preview prices, auto-pay HTTP 402 content, manage a pre-paid balance, buy
+  subscriptions.
 - **DataHub:** search the dataset marketplace and buy datasets (99% goes to the
   seller, download link returned).
 - **Pay:** inspect and settle store checkout sessions (WooCommerce, OpenCart,
@@ -60,6 +61,7 @@ docker run -i --rm -v "$PWD/agent-keypair.json:/wallet.json:ro" \
 |---|---|
 | `wallet_status` | Address, SOL, stablecoin balances, prepaid balance, remaining budget |
 | `spend_authority_status` | On-chain SpendAuthority (owner mode): caps, spent/left today, revoked |
+| `gate_find_endpoints` | Browse the public registry of x402-priced endpoints (price, network, access modes, fits-your-cap) |
 | `gate_get_price` | Preview an x402 paywall without paying |
 | `gate_fetch` | Fetch gated content, auto-paying (prepaid preferred, escrow otherwise) |
 | `gate_prepaid_balance` / `gate_prepaid_deposit` | Manage the pre-paid balance (no per-request signing) |
