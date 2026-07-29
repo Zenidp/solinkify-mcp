@@ -63,7 +63,8 @@ docker run -i --rm -v "$PWD/agent-keypair.json:/wallet.json:ro" \
 | `spend_authority_status` | On-chain SpendAuthority (owner mode): caps, spent/left today, revoked |
 | `gate_find_endpoints` | Browse the public registry of x402-priced endpoints (price, network, access modes, fits-your-cap) |
 | `gate_get_price` | Preview an x402 paywall without paying |
-| `gate_fetch` | Fetch gated content, auto-paying (prepaid preferred, escrow otherwise) |
+| `gate_fetch` | Fetch gated content, auto-paying (prepaid preferred, escrow otherwise); files a signed delivery record when the gate keeps one |
+| `gate_check_delivery` | Compare what the gate says it served with what the agent says it received |
 | `gate_prepaid_balance` / `gate_prepaid_deposit` | Manage the pre-paid balance (no per-request signing) |
 | `gate_subscribe` | Buy a creator's subscription plan (price read on-chain first) |
 | `datahub_search` | Search the DataHub marketplace (results carry `attested` + `quality_score`) |

@@ -3,12 +3,12 @@
   "name": "com.solinkify/mcp",
   "description": "Pay for x402 paywalls, datasets, and store checkouts on Solana, behind hard spending caps.",
   "websiteUrl": "https://solinkify.com/docs",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@solinkify/mcp",
-      "version": "0.3.1",
+      "version": "0.3.3",
       "transport": {
         "type": "stdio"
       },

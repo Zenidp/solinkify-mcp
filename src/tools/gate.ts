@@ -1,7 +1,14 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { PublicKey } from '@solana/web3.js';
-import { GateClient, depositPrepaid, getPrepaidBalance, subscribe } from '@solinkify/gate-sdk';
+import {
+  GateClient,
+  depositPrepaid,
+  getPrepaidBalance,
+  subscribe,
+  fileDeliveryReceipt,
+  getDeliveryRecord,
+} from '@solinkify/gate-sdk';
 import { mintFor } from '../config.js';
 import { PROGRAM_ID, type ToolContext } from '../context.js';
 import { fetchJson, textResult } from '../payments.js';
@@ -10,6 +17,9 @@ interface Manifest {
   price?: number;
   currency?: string;
   access_modes?: unknown;
+  /** Set when the gate files its own hash of what it served. */
+  delivery_records?: boolean;
+  payment?: { escrow_address?: string; endpoint_id?: string };
   [k: string]: unknown;
 }
 
@@ -158,15 +168,65 @@ export function registerGateTools(server: McpServer, ctx: ToolContext): void {
       const result = await client.fetchProtected(url, {
         headers: { 'User-Agent': USER_AGENT },
       });
-      const body = await result.response.text();
+      // Read bytes, not text: the delivery hash has to cover exactly what
+      // arrived, and a re-encode would change it.
+      const bytes = Buffer.from(await result.response.arrayBuffer());
+      const body = bytes.toString('utf8');
       if (result.via) ctx.guard.record(price);
+
+      // File the agent side when the gate says it files its own. Doing it here
+      // is the only chance: the bytes are gone once this tool returns, and a
+      // record cannot be reconstructed after the fact.
+      let delivery: Record<string, unknown> | null = null;
+      const creatorWallet = manifest?.payment?.escrow_address;
+      if (result.via === 'payment' && result.paymentId && manifest?.delivery_records && creatorWallet) {
+        const filed = await fileDeliveryReceipt({
+          wallet: ctx.wallet,
+          paymentId: result.paymentId,
+          creatorWallet,
+          content: bytes,
+          apiUrl: ctx.config.apiUrl,
+        });
+        delivery = {
+          content_sha256: filed.contentSha256,
+          recorded: filed.recorded,
+          ...(filed.error ? { error: filed.error } : {}),
+        };
+      }
+
       return textResult({
         http_status: result.response.status,
         paid: result.via ?? 'none',
         price_usd: result.via ? price : 0,
         payment_id: result.paymentId ?? null,
+        ...(delivery ? { delivery_record: delivery } : {}),
         content: body.length > 40_000 ? `${body.slice(0, 40_000)}… [truncated]` : body,
       });
+    },
+  );
+
+  server.registerTool(
+    'gate_check_delivery',
+    {
+      description:
+        'Check what each side says was delivered for a payment: the hash the gate filed for what it served, and the hash the agent filed for what it received. Use it to confirm a purchase arrived intact, or to show a discrepancy. Read-only and free. Note it records WHICH bytes were delivered, not whether their contents were correct.',
+      inputSchema: {
+        payment_id: z
+          .string()
+          .describe(
+            'The payment id returned by gate_fetch. Only payments settled through an escrow have one; prepaid and subscription access do not.',
+          ),
+      },
+    },
+    async ({ payment_id }) => {
+      const record = await getDeliveryRecord(payment_id, ctx.config.apiUrl);
+      const verdict =
+        record.match === true
+          ? 'both sides recorded the same content'
+          : record.match === false
+            ? 'THE TWO SIDES DISAGREE about what was delivered'
+            : 'only one side has filed so far, nothing to compare yet';
+      return textResult({ ...record, verdict });
     },
   );
 
